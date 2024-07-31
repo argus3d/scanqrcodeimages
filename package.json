@@ -6,9 +6,19 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "devwin": "set NODE_ENV=development&& electron .",
+    "devmac": "NODE_ENV=development electron .",
+    "package": "electron-packager . pdfqrcodescanner --platform=win32 --arch=x64 --out=dist --overwrite -icon=qr.ico"
   },
   "keywords": [],
+  "build": {
+    "appId": "com.arco.qrcodescannerimage",
+    "win": {
+      "icon": "qr.ico",
+      "target": "nsis"
+    }
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -17,10 +27,12 @@
     "jimp": "^0.22.12",
     "jsqr": "^1.4.0",
     "qrcode": "^1.5.3",
-    "qrcode-reader": "^1.0.4"
+    "qrcode-reader": "^1.0.4",
+    "electron-packager": "^17.1.2"
   },
   "devDependencies": {
-    "electron": "^31.3.1"
+    "electron": "^31.3.1",
+    "electron-packager": "^17.1.2"
   }
   
 }
