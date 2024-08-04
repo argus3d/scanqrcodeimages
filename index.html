@@ -26,7 +26,6 @@
             color: white;
             border: none;
             padding: 10px 20px;
-            margin: 10px 0;
             cursor: pointer;
             border-radius: 5px;
             transition: background-color 0.3s;
@@ -43,7 +42,8 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
-        th, td {
+        th,
+        td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
@@ -68,12 +68,18 @@
 <body>
     <h1>Busca qrcodes em arquivos de imagem</h1>
     <button id="select-folder">Selecione a pasta</button>
+    <br>
+    <label>Texto padrão a ser encontrado nos arquivos:</label>
+    <input type="text" id="search-input" placeholder="Buscar arquivos..." value="qr_">
+
     <p id="file-count"></p>
     <progress id="progress-bar" value="0" max="100" style="width: 100%; display: none;"></progress>
-    
+
     <table id="file-table">
         <thead>
             <tr>
+                <th>Capitulo</th>
+                <th>Ação</th>
                 <th>Arquivo</th>
                 <th>QR Result</th>
             </tr>
@@ -88,8 +94,10 @@
         const progressBar = document.getElementById('progress-bar');
 
         selectFolderButton.addEventListener('click', async () => {
-            const files = await window.electronAPI.selectFolder();
-
+            let searchInput = document.getElementById('search-input');
+            console.log(searchInput.value)
+            const files = await window.electronAPI.selectFolder(searchInput.value);
+            
             if (files) {
                 fileListElement.innerHTML = '';
                 fileCountElement.textContent = `Arquivos encontrados: ${files.length}`;
@@ -98,11 +106,27 @@
 
                 files.forEach((file, index) => {
                     const tr = document.createElement('tr');
+                    const capituloTd = document.createElement('td');
+                    const actionTd = document.createElement('td');
                     const fileNameTd = document.createElement('td');
                     const qrResultTd = document.createElement('td');
 
+                    let parts = file.path.split('\\');
+                    capituloTd.textContent = parts[parts.length-5];
+
+                    const openFolderButton = document.createElement('button');
+                    openFolderButton.textContent = '📂';
+                    openFolderButton.title = 'Abrir localização';
+                    openFolderButton.addEventListener('click', () => {
+                        window.electronAPI.openFileLocation(file.path);
+                    });
+                    actionTd.appendChild(openFolderButton);
+
                     fileNameTd.textContent = file.name;
                     qrResultTd.textContent = 'Verificando...'; // Placeholder text
+                    
+                    tr.appendChild(capituloTd);
+                    tr.appendChild(actionTd);
                     tr.appendChild(fileNameTd);
                     tr.appendChild(qrResultTd);
                     fileListElement.appendChild(tr);
@@ -122,16 +146,22 @@
                 const result = await window.electronAPI.verifyQRCode(file);
                 qrResultTd.textContent = result;
 
-                // Change cell color to red if the result is empty
-                if (result.length<3) {
+                // Check if the result is a valid URL
+                if (isValidURL(result)) {
+                    qrResultTd.style.backgroundColor = 'lightgreen';
+                    qrResultTd.style.color = 'black';
+                } else if (result.length < 3) {
                     qrResultTd.style.backgroundColor = 'red';
                     qrResultTd.style.color = 'white';
+                } else {
+                    qrResultTd.style.backgroundColor = 'yellow';
+                    qrResultTd.style.color = 'black';
                 }
 
                 // Update the progress bar
                 progressBar.value = index + 1;
                 if (index === progressBar.max - 1) {
-                    progressBar.style.display = 'none'; // Hide the progress bar when done
+                    progressBar.style.display = 'none';
                 }
             } catch (error) {
                 console.error('Error verifying QR code:', error);
@@ -141,12 +171,21 @@
             }
         }
 
+        function isValidURL(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
         function openImagePopup(filePath) {
             const popupWidth = 800;
             const popupHeight = 600;
             const left = (window.innerWidth / 2) - (popupWidth / 2);
             const top = (window.innerHeight / 2) - (popupHeight / 2);
-            
+
             const imageWindow = window.open('', '_blank', `width=${popupWidth},height=${popupHeight},top=${top},left=${left},toolbar=no,menubar=no,location=no,status=no,resizable=yes,scrollbars=yes`);
             imageWindow.document.write(`
                 <html>
